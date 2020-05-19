@@ -10,30 +10,34 @@ class Carbon::SmtpAdapter < Carbon::Adapter
 
   def deliver_now(email : Carbon::Email)
     auth = get_auth_tuple
+    config = ::EMail::Client::Config.new(settings.host, settings.port, 
+      auth: auth, 
+      helo_domain: settings.helo_domain
+    )
+    client = ::EMail::Client.new(config)
+    
+    new_email = ::Email.message.new
+    new_email.from email.from.address, email.from.name
+    
+    email.to.each do |to_address|
+      new_email.to(to_address.address, to_address.name)
+    end
+    email.cc.each do |cc_address|
+      new_email.cc(cc_address.address, cc_address.name)
+    end
+    email.bcc.each do |bcc_address|
+      new_email.bcc(bcc_address.address, bcc_address.name)
+    end
 
-    ::EMail.send(settings.host, settings.port, auth: auth) do
-      subject email.subject
-
-      from(email.from.address, email.from.name)
-
-      email.to.each do |to_address|
-        to(to_address.address, to_address.name)
-      end
-
-      email.cc.each do |cc_address|
-        cc(cc_address.address, cc_address.name)
-      end
-
-      email.bcc.each do |bcc_address|
-        bcc(bcc_address.address, bcc_address.name)
-      end
-
-      email.headers.each do |key, value|
-        custom_header(key, value)
-      end
-
-      message email.text_body
-      message_html email.html_body
+    email.headers.each do |key, value|
+      new_email.custom_header(key, value)
+    end
+    new_email.subject email.subject
+    new_email.message email.text_body
+    new_email.message_html email.html_body
+    
+    client.start do
+      send(email)
     end
   end
 
