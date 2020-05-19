@@ -11,7 +11,7 @@ class Carbon::SmtpAdapter < Carbon::Adapter
   def deliver_now(email : Carbon::Email)
     auth = get_auth_tuple
     config = ::EMail::Client::Config.new(settings.host, settings.port, helo_domain: settings.helo_domain)
-    config.use_auth(settings.username, settings.password) if !settings.username.nil? || !settings.password.nil?
+    config.use_auth(auth)
     client = ::EMail::Client.new(config)
     
     new_email = ::Email.message.new
